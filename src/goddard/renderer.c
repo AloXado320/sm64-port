@@ -114,8 +114,10 @@ static struct ObjGadget *sTimerGadgets[GD_NUM_TIMERS]; // @ 801BAEA8
 static u32 D_801BAF28;                                 // RAM addr offset?
 static s16 sTriangleBuf[13][8];                          // [[s16; 8]; 13]? vert indices?
 static u32 unref_801bb000[3];
+#ifndef USE_SYSTEM_MALLOC
 static u8 *sMemBlockPoolBase; // @ 801BB00C
 static u32 sAllocMemory;      // @ 801BB010; malloc-ed bytes
+#endif
 static u32 unref_801bb014;
 static s32 D_801BB018;
 static s32 D_801BB01C;
@@ -181,6 +183,11 @@ static OSIoMesg sGdDMAReqMesg;
 static struct ObjView *D_801BE994; // store if View flag 0x40 set
 #endif
 
+#ifdef USE_SYSTEM_MALLOC
+static void *(*sAllocFn)(u32 size);
+static void (*sFreeFn)(void *ptr);
+#endif
+
 // data
 static u32 unref_801a8670 = 0;
 static s32 D_801A8674 = 0;
@@ -192,9 +199,11 @@ static f32 sDynamicsTime = 0.0f;      // @ 801A8688
 static f32 sDLGenTime = 0.0f;         // @ 801A868C
 static f32 sRCPTime = 0.0f;           // @ 801A8690
 static f32 sTimeScaleFactor = 1.0f;   // @ D_801A8694
+#ifndef USE_SYSTEM_MALLOC
 static u32 sMemBlockPoolSize = 1;     // @ 801A8698
 static s32 sMemBlockPoolUsed = 0;     // @ 801A869C
-static s32 sTextureCount = 0;  // maybe?
+#endif
+static s32 sTextureCount = 0;
 static struct GdTimer *D_801A86A4 = NULL; // timer for dlgen, dynamics, or rcp
 static struct GdTimer *D_801A86A8 = NULL; // timer for dlgen, dynamics, or rcp
 static struct GdTimer *D_801A86AC = NULL; // timer for dlgen, dynamics, or rcp
@@ -762,7 +771,11 @@ void reset_cur_dl_indices(void);
 // TODO: make a gddl_num_t?
 
 u32 get_alloc_mem_amt(void) {
+#ifdef USE_SYSTEM_MALLOC
+    return 0;
+#else
     return sAllocMemory;
+#endif
 }
 
 /**
@@ -977,9 +990,14 @@ void gd_exit(UNUSED s32 code) {
 
 /* 24A1D4 -> 24A220; orig name: func_8019BA04 */
 void gd_free(void *ptr) {
+#ifdef USE_SYSTEM_MALLOC
+    sFreeFn(ptr);
+#else
     sAllocMemory -= gd_free_mem(ptr);
+#endif
 }
 
+#ifndef USE_SYSTEM_MALLOC
 /* 24A220 -> 24A318 */
 void *gd_allocblock(u32 size) {
     void *block; // 1c
@@ -998,9 +1016,13 @@ void *gd_allocblock(u32 size) {
     sMemBlockPoolUsed += size;
     return block;
 }
+#endif
 
 /* 24A318 -> 24A3E8 */
-void *gd_malloc(u32 size, u8 perm) {
+void *gd_malloc(u32 size, UNUSED u8 perm) {
+#ifdef USE_SYSTEM_MALLOC
+    return sAllocFn(size);
+#else
     void *ptr; // 1c
     size = ALIGN(size, 8);
     ptr = gd_request_mem(size, perm);
@@ -1016,6 +1038,7 @@ void *gd_malloc(u32 size, u8 perm) {
     sAllocMemory += size;
 
     return ptr;
+#endif
 }
 
 /* 24A3E8 -> 24A420; orig name: func_8019BC18 */
@@ -1144,12 +1167,23 @@ void Unknown8019C288(s32 stickX, s32 stickY) {
     ctrl->stickYf = (f32)(stickY / 2);
 }
 
+#ifndef USE_SYSTEM_MALLOC
 /* 24AAA8 -> 24AAE0; orig name: func_8019C2D8 */
 void gd_add_to_heap(void *addr, u32 size) {
     // TODO: is this `1` for permanence special?
     gd_add_mem_to_heap(size, addr, 1);
 }
+#endif
 
+#ifdef USE_SYSTEM_MALLOC
+void gdm_init(void *(*allocFn)(u32 size), void (*freeFn)(void *addr)) {
+    add_to_stacktrace("gdm_init");
+    sAllocFn = allocFn;
+    sFreeFn = freeFn;
+    gd_reset_sfx();
+    imout();
+}
+#else
 /* 24AAE0 -> 24AB7C */
 void gdm_init(void *blockpool, u32 size) {
     UNUSED u32 pad;
@@ -1167,6 +1201,7 @@ void gdm_init(void *blockpool, u32 size) {
     gd_reset_sfx();
     imout();
 }
+#endif
 
 /**
  * Initializes the Mario head demo
@@ -3204,11 +3239,13 @@ void gd_init(void) {
     UNUSED u32 pad30;
     s8 *data; // 2c
 
-    imin("gd_init");
+    add_to_stacktrace("gd_init");
+#ifndef USE_SYSTEM_MALLOC
     i = (u32)(sMemBlockPoolSize - DOUBLE_SIZE_ON_64_BIT(0x3E800));
     data = gd_allocblock(i);
     gd_add_mem_to_heap(i, data, 0x10);
-    sAlpha = (u16) 0xff;
+#endif
+    D_801BB184 = (u16) 0xff;
     D_801A867C = 0;
     D_801A8680 = 0;
     sTextureCount = 0;
