@@ -552,20 +552,26 @@ endif
 #==============================================================================#
 
 # N64 tools
-MIO0TOOL              := $(TOOLS_DIR)/mio0
-N64CKSUM              := $(TOOLS_DIR)/n64cksum
-N64GRAPHICS           := $(TOOLS_DIR)/n64graphics
-N64GRAPHICS_CI        := $(TOOLS_DIR)/n64graphics_ci
-TEXTCONV              := $(TOOLS_DIR)/textconv
-AIFF_EXTRACT_CODEBOOK := $(TOOLS_DIR)/aiff_extract_codebook
-VADPCM_ENC            := $(TOOLS_DIR)/vadpcm_enc
-EXTRACT_DATA_FOR_MIO  := $(TOOLS_DIR)/extract_data_for_mio
-SKYCONV               := $(TOOLS_DIR)/skyconv
+ifeq ($(TARGET_WINDOWS),1)
+ EXT_PREFIX := .exe
+else
+ EXT_PREFIX :=
+endif
+
+MIO0TOOL              := $(TOOLS_DIR)/mio0$(EXT_PREFIX)
+N64CKSUM              := $(TOOLS_DIR)/n64cksum$(EXT_PREFIX)
+N64GRAPHICS           := $(TOOLS_DIR)/n64graphics$(EXT_PREFIX)
+N64GRAPHICS_CI        := $(TOOLS_DIR)/n64graphics_ci$(EXT_PREFIX)
+TEXTCONV              := $(TOOLS_DIR)/textconv$(EXT_PREFIX)
+AIFF_EXTRACT_CODEBOOK := $(TOOLS_DIR)/aiff_extract_codebook$(EXT_PREFIX)
+VADPCM_ENC            := $(TOOLS_DIR)/vadpcm_enc$(EXT_PREFIX)
+EXTRACT_DATA_FOR_MIO  := $(TOOLS_DIR)/extract_data_for_mio$(EXT_PREFIX)
+SKYCONV               := $(TOOLS_DIR)/skyconv$(EXT_PREFIX)
 # Use the system installed armips if available. Otherwise use the one provided with this repository.
 ifneq (,$(call find-command,armips))
   RSPASM              := armips
 else
-  RSPASM              := $(TOOLS_DIR)/armips
+  RSPASM              := $(TOOLS_DIR)/armips$(EXT_PREFIX)
 endif
 ENDIAN_BITWIDTH       := $(BUILD_DIR)/endian-and-bitwidth
 EMULATOR = mupen64plus

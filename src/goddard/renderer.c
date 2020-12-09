@@ -1177,7 +1177,7 @@ void gd_add_to_heap(void *addr, u32 size) {
 
 #ifdef USE_SYSTEM_MALLOC
 void gdm_init(void *(*allocFn)(u32 size), void (*freeFn)(void *addr)) {
-    add_to_stacktrace("gdm_init");
+    imin("gdm_init");
     sAllocFn = allocFn;
     sFreeFn = freeFn;
     gd_reset_sfx();
@@ -3239,13 +3239,13 @@ void gd_init(void) {
     UNUSED u32 pad30;
     s8 *data; // 2c
 
-    add_to_stacktrace("gd_init");
+    imin("gd_init");
 #ifndef USE_SYSTEM_MALLOC
     i = (u32)(sMemBlockPoolSize - DOUBLE_SIZE_ON_64_BIT(0x3E800));
     data = gd_allocblock(i);
     gd_add_mem_to_heap(i, data, 0x10);
 #endif
-    D_801BB184 = (u16) 0xff;
+    sAlpha = (u16) 0xff;
     D_801A867C = 0;
     D_801A8680 = 0;
     sTextureCount = 0;
