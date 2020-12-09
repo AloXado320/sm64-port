@@ -17,7 +17,7 @@ else
   BUILD_PROGRAMS := $(filter-out armips,$(ALL_PROGRAMS))
 endif
 
-default: all
+default: all-except-recomp
 
 n64graphics_SOURCES := n64graphics.c utils.c
 n64graphics_CFLAGS  := -DN64GRAPHICS_STANDALONE
