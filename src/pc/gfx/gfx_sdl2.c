@@ -1,6 +1,8 @@
 #include "../compat.h"
 
-#if !defined(__linux__) && !defined(__BSD__) && defined(ENABLE_OPENGL)
+#if !defined(__linux__) && !defined(__BSD__)
+
+#if defined(ENABLE_OPENGL) || defined(ENABLE_OPENGL_LEGACY) || defined(ENABLE_OPENGX)
 
 #ifdef __MINGW32__
 #define FOR_WINDOWS 1
@@ -8,7 +10,7 @@
 #define FOR_WINDOWS 0
 #endif
 
-#if FOR_WINDOWS
+/*#if FOR_WINDOWS
 #include <GL/glew.h>
 #include "SDL.h"
 #define GL_GLEXT_PROTOTYPES 1
@@ -17,7 +19,9 @@
 #include <SDL2/SDL.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL2/SDL_opengles2.h>
-#endif
+#endif*/
+
+#include <SDL2/SDL.h>
 
 #include "gfx_window_manager_api.h"
 #include "gfx_screen_config.h"
@@ -155,7 +159,7 @@ int test_vsync(void) {
 static void gfx_sdl_init(const char *game_name, bool start_in_fullscreen) {
     SDL_Init(SDL_INIT_VIDEO);
 
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
     //SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
@@ -174,9 +178,12 @@ static void gfx_sdl_init(const char *game_name, bool start_in_fullscreen) {
     SDL_GL_CreateContext(wnd);
 
     SDL_GL_SetSwapInterval(1);
+#ifndef TARGET_GX
     test_vsync();
+
     if (!vsync_enabled)
         puts("Warning: VSync is not enabled or not working. Falling back to timer for synchronization");
+#endif
 
     for (size_t i = 0; i < sizeof(windows_scancode_table) / sizeof(SDL_Scancode); i++) {
         inverted_scancode_table[windows_scancode_table[i]] = i;
@@ -312,4 +319,5 @@ struct GfxWindowManagerAPI gfx_sdl = {
     gfx_sdl_get_time
 };
 
+#endif
 #endif

@@ -1,4 +1,4 @@
-#ifdef TARGET_GX
+#if defined(TARGET_GX) && !defined(ENABLE_OPENGX)
 
 #include <malloc.h>
 #include <string.h>

@@ -19,7 +19,7 @@ void guOrthoF(float m[4][4], float left, float right, float bottom, float top, f
     }
 }
 
-void guOrtho(Mtx *m, float left, float right, float bottom, float top, float near, float far,
+void guOrthoN64(Mtx *m, float left, float right, float bottom, float top, float near, float far,
              float scale) {
     float sp28[4][4];
     guOrthoF(sp28, left, right, bottom, top, near, far, scale);

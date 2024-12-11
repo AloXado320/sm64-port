@@ -9,10 +9,12 @@
 
 void guPerspectiveF(float mf[4][4], u16 *perspNorm, float fovy, float aspect,
                     float near, float far, float scale);
-void guPerspective(Mtx *m, u16 *perspNorm, float fovy, float aspect, float near,
+void guPerspectiveN64(Mtx *m, u16 *perspNorm, float fovy, float aspect, float near,
                    float far, float scale);
-void guOrtho(Mtx *m, float left, float right, float bottom, float top,
+#define guPerspective guPerspectiveN64
+void guOrthoN64(Mtx *m, float left, float right, float bottom, float top,
              float near, float far, float scale);
+#define guOrtho guOrthoN64
 void guTranslate(Mtx *m, float x, float y, float z);
 void guRotate(Mtx *m, float a, float x, float y, float z);
 void guScale(Mtx *m, float x, float y, float z);

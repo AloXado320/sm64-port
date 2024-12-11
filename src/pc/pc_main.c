@@ -171,7 +171,7 @@ void main_func(void) {
 #elif defined(ENABLE_DX11)
     rendering_api = &gfx_direct3d11_api;
     wm_api = &gfx_dxgi_api;
-#elif defined(ENABLE_OPENGL)
+#elif defined(ENABLE_OPENGL) || defined(ENABLE_OPENGL_LEGACY)
     rendering_api = &gfx_opengl_api;
     #if defined(__linux__) || defined(__BSD__)
         wm_api = &gfx_glx;
@@ -182,8 +182,13 @@ void main_func(void) {
     rendering_api = &gfx_dummy_renderer_api;
     wm_api = &gfx_dummy_wm_api;
 #elif defined(TARGET_GX)
-    rendering_api = &gfx_gx_api;
-    wm_api = &gfx_gx_wm_api;
+    #ifdef ENABLE_OPENGX
+        rendering_api = &gfx_opengl_api; // uses OpenGL Legacy
+        wm_api = &gfx_sdl; // uses SDL2
+    #else
+        rendering_api = &gfx_gx_api;
+        wm_api = &gfx_gx_wm_api;
+    #endif
 #endif
 
     gfx_init(wm_api, rendering_api, "Super Mario 64 PC-Port", configFullscreen);

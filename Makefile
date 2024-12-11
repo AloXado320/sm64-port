@@ -22,10 +22,14 @@ TARGET_N64 ?= 0
 # Build for Emscripten/WebGL
 TARGET_WEB ?= 0
 # Build for Nintendo Gamecube/Wii
-TARGET_WII ?= 1
+TARGET_WII ?= 0
 TARGET_GAMECUBE ?= 0
 # Compiler to use (ido or gcc)
 COMPILER ?= ido
+# Legacy OGL
+ENABLE_OPENGL_LEGACY ?= 0
+# Use OpenGX (GL wrapper for GC/Wii), uses GL Legacy render
+ENABLE_OPENGX ?= 0
 
 # Automatic settings only for ports
 ifeq ($(TARGET_N64),0)
@@ -62,7 +66,10 @@ ifeq ($(TARGET_N64),0)
       GX_PLATFORM := cube
     # On others, default to OpenGL
     else
+    ifeq ($(ENABLE_OPENGL_LEGACY),0)
+      # On others, default to OpenGL
       ENABLE_OPENGL ?= 1
+    endif
     endif
   endif
 
@@ -496,11 +503,17 @@ ifeq ($(TARGET_GX),1)
     include $(DEVKITPPC)/gamecube_rules
   endif
   LIBOGC := $(DEVKITPRO)/libogc
-  PLATFORM_CFLAGS  := $(MACHDEP) -DTARGET_GX -fomit-frame-pointer -fno-strict-aliasing -I$(LIBOGC)/include
+  PORTLIBS := $(DEVKITPRO)/portlibs/$(GX_PLATFORM)
   ifeq ($(TARGET_WII),1)
-    WII_LIBS := -lwiiuse -lbte
+    WII_LIBS := -lwiiuse -lbte -lwiikeyboard
   endif
-  PLATFORM_LDFLAGS := $(MACHDEP) -L$(LIBOGC)/lib/$(GX_PLATFORM) -g -lm -lasnd $(WII_LIBS) -lfat -logc
+  ifeq ($(ENABLE_OPENGX),1)
+    PLATFORM_CFLAGS  := $(MACHDEP) -DTARGET_GX  -DENABLE_OPENGX -fomit-frame-pointer -fno-strict-aliasing -I$(LIBOGC)/include -I$(PORTLIBS)/include
+    PLATFORM_LDFLAGS += $(MACHDEP) -L$(PORTLIBS)/lib -lopengx -lSDL2 -L$(LIBOGC)/lib/$(GX_PLATFORM) -g -lm -lasnd -laesnd -lfat $(WII_LIBS) -logc
+  else
+    PLATFORM_CFLAGS  := $(MACHDEP) -DTARGET_GX -fomit-frame-pointer -fno-strict-aliasing -I$(LIBOGC)/include
+    PLATFORM_LDFLAGS := $(MACHDEP) -L$(LIBOGC)/lib/$(GX_PLATFORM) -g -lm -lasnd $(WII_LIBS) -lfat -logc
+  endif
 endif
 
 PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
@@ -529,6 +542,11 @@ endif
 ifeq ($(ENABLE_DX12),1)
   GFX_CFLAGS := -DENABLE_DX12
   PLATFORM_LDFLAGS += -lgdi32 -static
+endif
+
+ifeq ($(ENABLE_OPENGL_LEGACY),1)
+  GFX_CFLAGS  := -DENABLE_OPENGL_LEGACY
+  GFX_LDFLAGS :=
 endif
 
 GFX_CFLAGS += -DWIDESCREEN
