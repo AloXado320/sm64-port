@@ -5,13 +5,23 @@ A prior copy of the game is required to extract the assets.
 
 ## Known Issues
 
-This is a work-in-progress, most things are broken. It *does* run on a real hardware.
+This is a work-in-progress, most things are broken. It *does* run on a real hardware using native GX render.
 
-**Completely Broken:**
+Using OpenGX throws an invalid read on Dolphin, though ignoring that warning things render to some extend. Use `ENABLE_OPENGX=1` to enable it
+
+**Broken (Native GX):**
  - The Z buffer
  - Only implemented basic color/texture shaders
 
-**Somewhat Broken:**
+**Broken (OpenGX):**
+
+OpenGX is still a work in progress, though it renders a bit better than Native GX.
+ - Half of the screen is covered on a black box
+   - When a dialog is opened it makes it act strangely, possibly due to scissors?
+ - Vertices are notoriously broken specially when the camera is up close
+ - Mario's face ingame and other decals don't render properly
+
+**Somewhat Working:**
  - Audio
 
 **Working:**
@@ -61,7 +71,10 @@ docker run --rm -v $(pwd):/sm64 markstreet/sm64:wii make VERSION=us --jobs 4 # L
 
 ### Linux / WSL (Ubuntu)
 
-Tested successfully on **Ubuntu 18.04** and **20.04**. Does not work on **16.04**.
+Tested successfully on **Ubuntu 18.04** and **20.04**. Does not work on **16.04**. (Note, these are outdated, refer to devkitpro's page to install)
+
+https://devkitpro.org/wiki/devkitPro_pacman
+
 
 ```sh
 sudo su -
@@ -86,6 +99,9 @@ wget https://github.com/devkitPro/pacman/releases/download/v1.0.2/devkitpro-pacm
 dkp-pacman -Syu wii-dev --noconfirm
 # if this ^^ fails with error about archive format, use a VPN to get yourself out of the USA and then try again.
 
+# For OpenGX
+dkp-pacman -Syu gamecube-sdl2 gamecube-opengx wii-sdl2 wii-opengx --noconfirm
+
 exit
 
 cd
@@ -103,7 +119,8 @@ export PATH="/opt/devkitpro/tools/bin/:~/sm64-port/tools:${PATH}"
 export DEVKITPRO=/opt/devkitpro
 export DEVKITPPC=/opt/devkitpro/devkitPPC
 
-make -j4
+# Note, use ENABLE_OPENGX=1 to use OpenGL wrapper
+make -j4 TARGET_WII=1
 ```
 
 ### Windows (MSYS2)
@@ -160,6 +177,11 @@ MINGW64 may close itself when done, if it does, find `MSYS2 MinGW 64bit` in your
 pacman -S wii-dev git make python3 mingw-w64-x86_64-gcc --noconfirm
 ```
 
+Note, for OpenGX you have to add these additional dependencies:
+```sh
+pacman -S gamecube-sdl2 gamecube-opengx wii-sdl2 wii-opengx --noconfirm
+```
+
 **Setup Environment Variables:**
 
 ```sh
@@ -190,7 +212,7 @@ cp /c/temp/baserom.us.z64 ./ && echo "OK!" # change 'us' to 'eu', 'jp' or 'sh' a
 **Compile:**
 
 ```sh
-make VERSION=us --jobs 4 # change 'us' to 'eu', 'jp' or 'sh' as appropriate
+make VERSION=us TARGET_WII=1 --jobs 4 # Note, use ENABLE_OPENGX=1 to use OpenGL wrapper
 ```
 
 ### Other Operating Systems

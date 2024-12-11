@@ -10,7 +10,10 @@
 #define FOR_WINDOWS 0
 #endif
 
-/*#if FOR_WINDOWS
+#ifdef ENABLE_OPENGX
+#include <SDL2/SDL.h>
+#else
+#if FOR_WINDOWS
 #include <GL/glew.h>
 #include "SDL.h"
 #define GL_GLEXT_PROTOTYPES 1
@@ -19,9 +22,8 @@
 #include <SDL2/SDL.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL2/SDL_opengles2.h>
-#endif*/
-
-#include <SDL2/SDL.h>
+#endif
+#endif // ENABLE_OPENGX
 
 #include "gfx_window_manager_api.h"
 #include "gfx_screen_config.h"
@@ -159,7 +161,7 @@ int test_vsync(void) {
 static void gfx_sdl_init(const char *game_name, bool start_in_fullscreen) {
     SDL_Init(SDL_INIT_VIDEO);
 
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
     //SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
