@@ -21,6 +21,7 @@
 #ifdef TARGET_GX
 #include "gfx/gfx_gx_wm.h"
 #include "gfx/gfx_gx.h"
+#include <SDL2/SDL.h> // Needed to fix SDL2 initialization using SDL2main
 #endif
 
 #include "audio/audio_api.h"

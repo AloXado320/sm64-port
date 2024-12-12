@@ -509,7 +509,7 @@ ifeq ($(TARGET_GX),1)
   endif
   ifeq ($(ENABLE_OPENGX),1)
     PLATFORM_CFLAGS  := $(MACHDEP) -DTARGET_GX  -DENABLE_OPENGX -fomit-frame-pointer -fno-strict-aliasing -I$(LIBOGC)/include -I$(PORTLIBS)/include
-    PLATFORM_LDFLAGS += $(MACHDEP) -L$(PORTLIBS)/lib -lopengx -lSDL2 -L$(LIBOGC)/lib/$(GX_PLATFORM) -g -lm -lasnd -laesnd -lfat $(WII_LIBS) -logc
+    PLATFORM_LDFLAGS += $(MACHDEP) -L$(PORTLIBS)/lib -lopengx -lSDL2 -lSDL2main -L$(LIBOGC)/lib/$(GX_PLATFORM) -g -lm -lasnd -laesnd -lfat $(WII_LIBS) -logc
   else
     PLATFORM_CFLAGS  := $(MACHDEP) -DTARGET_GX -fomit-frame-pointer -fno-strict-aliasing -I$(LIBOGC)/include
     PLATFORM_LDFLAGS := $(MACHDEP) -L$(LIBOGC)/lib/$(GX_PLATFORM) -g -lm -lasnd $(WII_LIBS) -lfat -logc

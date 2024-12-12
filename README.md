@@ -5,7 +5,7 @@ A prior copy of the game is required to extract the assets.
 
 ## Known Issues
 
-This is a work-in-progress, most things are broken. It *does* run on a real hardware using native GX render.
+This is a work-in-progress, most things are broken. It *does* run on a real hardware.
 
 Using OpenGX throws an invalid read on Dolphin, though ignoring that warning things render to some extend. Use `ENABLE_OPENGX=1` to enable it
 
@@ -16,8 +16,7 @@ Using OpenGX throws an invalid read on Dolphin, though ignoring that warning thi
 **Broken (OpenGX):**
 
 OpenGX is still a work in progress, though it renders a bit better than Native GX.
- - Half of the screen is covered on a black box
-   - When a dialog is opened it makes it act strangely, possibly due to scissors?
+ - When a dialog is opened, the top half of screen flickers
  - Vertices are notoriously broken specially when the camera is up close
  - Mario's face ingame and other decals don't render properly
 
