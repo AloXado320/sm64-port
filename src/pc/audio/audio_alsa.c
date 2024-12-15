@@ -1,6 +1,6 @@
 #include "../compat.h"
 
-#if (defined(__linux__) || defined(__BSD__)) && !defined(TARGET_WEB)
+#if 0
 /*
     Simple sound playback using ALSA API and libasound.
     Dependencies: libasound, alsa

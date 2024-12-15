@@ -1,4 +1,4 @@
-#if !defined(_WIN32) && !defined(_WIN64) && !defined(TARGET_GX)
+#if !defined(TARGET_GX)
 
 #ifdef __MINGW32__
 #include "SDL.h"

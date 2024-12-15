@@ -15,7 +15,11 @@
 
 #include <PR/gbi.h>
 
-/*#ifdef __MINGW32__
+#ifdef TARGET_GX
+#include <opengx.h>
+#else
+
+#ifdef __MINGW32__
 # define FOR_WINDOWS 1
 #else
 # define FOR_WINDOWS 0
@@ -28,21 +32,14 @@
 
 #define GL_GLEXT_PROTOTYPES 1
 
-#ifdef WAPI_SDL2
 # include <SDL2/SDL.h>
 # include <SDL2/SDL_opengl.h>
-#elif defined(WAPI_SDL1)
-# include <SDL/SDL.h>
-# ifndef GLEW_STATIC
-#  include <SDL/SDL_opengl.h>
-# endif
-#endif*/
+
+#endif
 
 #include "gfx_cc.h"
 #include "gfx_rendering_api.h"
 #include "macros.h"
-
-#include <opengx.h>
 
 enum MixType {
     SH_MT_NONE,

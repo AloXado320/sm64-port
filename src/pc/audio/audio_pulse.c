@@ -1,6 +1,6 @@
 #include "../compat.h"
 
-#if defined(__linux__) || defined(__BSD__)
+#if 0
 
 #include <stdio.h>
 #include <stdbool.h>

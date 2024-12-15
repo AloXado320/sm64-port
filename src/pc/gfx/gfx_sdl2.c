@@ -1,6 +1,6 @@
 #include "../compat.h"
 
-#if !defined(__linux__) && !defined(__BSD__)
+#if 1
 
 #if defined(ENABLE_OPENGL) || defined(ENABLE_OPENGL_LEGACY) || defined(ENABLE_OPENGX)
 
@@ -173,9 +173,11 @@ static void gfx_sdl_init(const char *game_name, bool start_in_fullscreen) {
     wnd = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             window_width, window_height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
+#ifndef TARGET_GX
     if (start_in_fullscreen) {
         set_fullscreen(true, false);
     }
+#endif
 
     SDL_GL_CreateContext(wnd);
 

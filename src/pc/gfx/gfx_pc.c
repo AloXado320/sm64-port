@@ -38,8 +38,16 @@
 #define MAX_LIGHTS 2
 #define MAX_VERTICES 64
 
-struct RGBA {
-    uint8_t r, g, b, a;
+// Helps reducing vertex explosions on GX target but upclose it's still a problem.
+// Used on DOS and PS2 port, more or less a "temporary" workaround if enabled.
+#ifdef TARGET_GX
+// do manual clipping
+//#define GFX_MANUAL_CLIPPING 1
+#endif
+
+union RGBA {
+    struct { uint8_t r, g, b, a; };
+    uint32_t rgba;
 };
 
 struct XYWidthHeight {
@@ -49,7 +57,7 @@ struct XYWidthHeight {
 struct LoadedVertex {
     float x, y, z, w;
     float u, v;
-    struct RGBA color;
+    union RGBA color;
     uint8_t clip_rej;
 };
 
@@ -130,7 +138,7 @@ static struct RDP {
     uint32_t other_mode_l, other_mode_h;
     uint32_t combine_mode;
 
-    struct RGBA env_color, prim_color, fog_color, fill_color;
+    union RGBA env_color, prim_color, fog_color, fill_color;
     struct XYWidthHeight viewport, scissor;
     bool viewport_or_scissor_changed;
     void *z_buf_address;
@@ -712,44 +720,8 @@ static void gfx_sp_vertex(size_t n_vertices, size_t dest_index, const Vtx *verti
     }
 }
 
-static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx) {
-    struct LoadedVertex *v1 = &rsp.loaded_vertices[vtx1_idx];
-    struct LoadedVertex *v2 = &rsp.loaded_vertices[vtx2_idx];
-    struct LoadedVertex *v3 = &rsp.loaded_vertices[vtx3_idx];
-    struct LoadedVertex *v_arr[3] = {v1, v2, v3};
-
-    //if (rand()%2) return;
-
-    if (v1->clip_rej & v2->clip_rej & v3->clip_rej) {
-        // The whole triangle lies outside the visible area
-        return;
-    }
-
-    if ((rsp.geometry_mode & G_CULL_BOTH) != 0) {
-        float dx1 = v1->x / (v1->w) - v2->x / (v2->w);
-        float dy1 = v1->y / (v1->w) - v2->y / (v2->w);
-        float dx2 = v3->x / (v3->w) - v2->x / (v2->w);
-        float dy2 = v3->y / (v3->w) - v2->y / (v2->w);
-        float cross = dx1 * dy2 - dy1 * dx2;
-
-        if ((v1->w < 0) ^ (v2->w < 0) ^ (v3->w < 0)) {
-            // If one vertex lies behind the eye, negating cross will give the correct result.
-            // If all vertices lie behind the eye, the triangle will be rejected anyway.
-            cross = -cross;
-        }
-
-        switch (rsp.geometry_mode & G_CULL_BOTH) {
-            case G_CULL_FRONT:
-                if (cross <= 0) return;
-                break;
-            case G_CULL_BACK:
-                if (cross >= 0) return;
-                break;
-            case G_CULL_BOTH:
-                // Why is this even an option?
-                return;
-        }
-    }
+static inline void gfx_push_triangle(const struct LoadedVertex *restrict v1, const struct LoadedVertex *restrict v2, const struct LoadedVertex *restrict v3) {
+    const struct LoadedVertex *v_arr[3] = {v1, v2, v3};
 
     bool depth_test = (rsp.geometry_mode & G_ZBUFFER) == G_ZBUFFER;
     if (depth_test != rendering_state.depth_test) {
@@ -877,8 +849,8 @@ static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx) {
         }
 
         for (int j = 0; j < num_inputs; j++) {
-            struct RGBA *color;
-            struct RGBA tmp;
+            const union RGBA *color;
+            union RGBA tmp;
             for (int k = 0; k < 1 + (use_alpha ? 1 : 0); k++) {
                 switch (comb->shader_input_mapping[k][j]) {
                     case CC_PRIM:
@@ -927,6 +899,147 @@ static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx) {
     if (++buf_vbo_num_tris == MAX_BUFFERED) {
         gfx_flush();
     }
+}
+
+#ifdef GFX_MANUAL_CLIPPING
+static inline float flerp(const float v0, const float v1, const float t) {
+    return v0 + t * (v1 - v0);
+}
+
+static inline union RGBA rgba_lerp(const union RGBA c0, const union RGBA c1, const float t) {
+    return (union RGBA){{
+        c0.r + (c1.r - c0.r) * t,
+        c0.g + (c1.g - c0.g) * t,
+        c0.b + (c1.b - c0.b) * t,
+        c0.a + (c1.a - c0.a) * t,
+    }};
+}
+
+static inline bool gfx_clip_triangle(struct LoadedVertex *v1, struct LoadedVertex *v2, struct LoadedVertex *v3, const uint8_t clip_and) {
+    static const float c_planes[][4] = {
+        {  0.0f,  0.0f, -1.0f,  1.0f }, // near
+        {  0.0f,  0.0f,  1.0f,  1.0f }, // far
+        {  0.0f, -1.0f,  0.0f,  1.0f }, // top
+        {  0.0f,  1.0f,  0.0f,  1.0f }, // bottom
+        { -1.0f,  0.0f,  0.0f,  1.0f }, // left
+        {  1.0f,  0.0f,  0.0f,  1.0f }, // right
+    };
+
+    const uint8_t clip_or = v1->clip_rej | v2->clip_rej | v3->clip_rej;
+
+    if (!clip_or && clip_and) return false; // triangle fully in frustum
+
+    struct LoadedVertex v_buf[2][12] = { { *v1, *v2, *v3 } };
+    int v_num[2] = { 3, 0 };
+    int v_idx = 0;
+
+    uint8_t plane_idx = 0;
+    for (uint8_t clip_mask = 1; clip_mask < 64; clip_mask <<= 1, ++plane_idx) {
+        if (!(clip_or & clip_mask)) continue;
+
+        const int num_verts = v_num[v_idx];
+        const int outidx = !v_idx;
+        const struct LoadedVertex *v_in = v_buf[v_idx];
+        struct LoadedVertex *v_out = v_buf[outidx];
+        const float *plane = c_planes[plane_idx];
+
+        for (int i = 0; i < num_verts; ++i) {
+            const struct LoadedVertex *vthis = &v_in[i];
+            const struct LoadedVertex *vnext = &v_in[(i + 1) % num_verts];
+            const float d1 = plane[0] * vthis->x + plane[1] * vthis->y + plane[2] * vthis->z + vthis->w;
+            const float d2 = plane[0] * vnext->x + plane[1] * vnext->y + plane[2] * vnext->z + vnext->w;
+            const bool this_in = d1 > 0.0f;
+            const bool next_in = d2 > 0.0f;
+            // current is inside clipping plane, push it into output
+            if (this_in) v_out[v_num[outidx]++] = *vthis;
+            // one of the vertices is outside, clip the edge and push intersection
+            if (this_in ^ next_in) {
+                struct LoadedVertex *xv = &v_out[v_num[outidx]++];
+                if (this_in) {
+                    const float t = d1 / (d1 - d2);
+                    xv->x = flerp(vthis->x, vnext->x, t);
+                    xv->y = flerp(vthis->y, vnext->y, t);
+                    xv->z = flerp(vthis->z, vnext->z, t);
+                    xv->w = flerp(vthis->w, vnext->w, t);
+                    xv->u = flerp(vthis->u, vnext->u, t);
+                    xv->v = flerp(vthis->v, vnext->v, t);
+                    xv->color = rgba_lerp(vthis->color, vnext->color, t);
+                    xv->clip_rej = 0;
+                } else {
+                    const float t = d2 / (d2 - d1);
+                    xv->x = flerp(vnext->x, vthis->x, t);
+                    xv->y = flerp(vnext->y, vthis->y, t);
+                    xv->z = flerp(vnext->z, vthis->z, t);
+                    xv->w = flerp(vnext->w, vthis->w, t);
+                    xv->u = flerp(vnext->u, vthis->u, t);
+                    xv->v = flerp(vnext->v, vthis->v, t);
+                    xv->color = rgba_lerp(vnext->color, vthis->color, t);
+                }
+            }
+        }
+
+        if (v_num[outidx] < 3) return true; // not enough for a triangle
+
+        v_idx = outidx;
+        v_num[!v_idx] = 0;
+    }
+
+    // make a triangle fan
+    const int n = v_num[v_idx] - 1;
+    const struct LoadedVertex *in = v_buf[v_idx];
+    for (int i = 1; i < n; ++i)
+        gfx_push_triangle(in + 0, in + i, in + i + 1);
+
+    return true;
+}
+#endif // GFX_MANUAL_CLIPPING
+
+static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx) {
+    struct LoadedVertex *v1 = &rsp.loaded_vertices[vtx1_idx];
+    struct LoadedVertex *v2 = &rsp.loaded_vertices[vtx2_idx];
+    struct LoadedVertex *v3 = &rsp.loaded_vertices[vtx3_idx];
+
+    //if (rand()%2) return;
+
+    const uint8_t clip_and = v1->clip_rej & v2->clip_rej & v3->clip_rej;
+    if (clip_and) {
+        // The whole triangle lies outside the visible area
+        return;
+    }
+
+    if ((rsp.geometry_mode & G_CULL_BOTH) != 0) {
+        float dx1 = v1->x / (v1->w) - v2->x / (v2->w);
+        float dy1 = v1->y / (v1->w) - v2->y / (v2->w);
+        float dx2 = v3->x / (v3->w) - v2->x / (v2->w);
+        float dy2 = v3->y / (v3->w) - v2->y / (v2->w);
+        float cross = dx1 * dy2 - dy1 * dx2;
+
+        if ((v1->w < 0) ^ (v2->w < 0) ^ (v3->w < 0)) {
+            // If one vertex lies behind the eye, negating cross will give the correct result.
+            // If all vertices lie behind the eye, the triangle will be rejected anyway.
+            cross = -cross;
+        }
+
+        switch (rsp.geometry_mode & G_CULL_BOTH) {
+            case G_CULL_FRONT:
+                if (cross <= 0) return;
+                break;
+            case G_CULL_BACK:
+                if (cross >= 0) return;
+                break;
+            case G_CULL_BOTH:
+                // Why is this even an option?
+                return;
+        }
+    }
+
+#ifdef GFX_MANUAL_CLIPPING
+    // clip the triangle and put the resulting triangles into the buffer
+    // otherwise put the current triangle
+    if (!gfx_clip_triangle(v1, v2, v3, clip_and))
+#endif
+
+    gfx_push_triangle(v1, v2, v3);
 }
 
 static void gfx_sp_geometry_mode(uint32_t clear, uint32_t set) {

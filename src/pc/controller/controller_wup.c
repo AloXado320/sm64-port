@@ -1,4 +1,4 @@
-#ifdef __linux__
+#if 0
 
 #include <stdbool.h>
 #include <pthread.h>
