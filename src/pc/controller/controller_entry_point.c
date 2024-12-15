@@ -22,11 +22,13 @@
 #endif
 
 static struct ControllerAPI *controller_implementations[] = {
-#ifdef TARGET_GX
+#ifdef TARGET_GX // TODO: Make them cooperate together on Wii
 #ifdef __wii__
     &controller_wii,
 #endif
+#ifdef __gamecube__
     &controller_gamecube,
+#endif
 #else
     #if defined(_WIN32) || defined(_WIN64)
         &controller_xinput,

@@ -7,24 +7,21 @@ A prior copy of the game is required to extract the assets.
 
 This is a work-in-progress, most things are broken. It *does* run on a real hardware.
 
-Using OpenGX throws an invalid read on Dolphin, though ignoring that warning things render to some extend. Use `ENABLE_OPENGX=1` to enable it
+OpenGX is still a work in progress, though it renders a bit better than Native GX. . Use `ENABLE_OPENGX=1` to enable it.
 
 **Broken (Native GX):**
  - The Z buffer
  - Only implemented basic color/texture shaders
 
 **Broken (OpenGX):**
-
-OpenGX is still a work in progress, though it renders a bit better than Native GX.
- - When a dialog is opened, the top half of screen flickers
- - Vertices are notoriously broken specially when the camera is up close
- - Mario's face ingame and other decals don't render properly
+ - Vertices are notoriously broken specially when the camera is up close.
+ - Mario's face ingame and other decals don't render properly.
 
 **Somewhat Working:**
  - Audio
 
 **Working:**
- - Controls
+ - Controls (TODO: Auto adjust between GC and Wii pads)
  - Saving
 
 ## Building

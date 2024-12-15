@@ -40,6 +40,7 @@
 
 // Helps reducing vertex explosions on GX target but upclose it's still a problem.
 // Used on DOS and PS2 port, more or less a "temporary" workaround if enabled.
+// https://github.com/fgsfdsfgs/sm64-port/blob/ps2/src/pc/gfx/gfx_pc.c#L1156-L1247
 #ifdef TARGET_GX
 // do manual clipping
 //#define GFX_MANUAL_CLIPPING 1

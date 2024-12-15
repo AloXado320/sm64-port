@@ -1,4 +1,5 @@
 #if !defined(TARGET_GX)
+// TODO: Compiles on GX target but audio is broken, makes loud static noise
 
 #ifdef __MINGW32__
 #include "SDL.h"
